@@ -1,0 +1,9 @@
+# Server Control Panel Configuration
+# Copy this file to config.toml and update with your actual API keys
+
+[splitwise]
+# Splitwise API Credentials
+# Get these from: https://secure.splitwise.com/apps
+consumer_key = "your_consumer_key_here"
+consumer_secret = "your_consumer_secret_here"
+api_key = "your_api_key_here"

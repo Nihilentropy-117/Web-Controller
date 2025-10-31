@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Control Panel</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">
+                    <span class="title-icon">🖥️</span>
+                    Server Control Panel
+                </h1>
+                <p class="subtitle">Manage and monitor your server modules</p>
+            </div>
+            <div class="header-actions">
+                <button class="reload-btn" onclick="reloadModules()">
+                    <span class="reload-icon">🔄</span>
+                    Reload Modules
+                </button>
+                <a href="/logout" class="logout-btn">
+                    <span class="logout-icon">🚪</span>
+                    Logout
+                </a>
+            </div>
+        </header>
+
+        <div id="modules-container" class="modules-container">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading modules...</p>
+            </div>
+        </div>
+
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
