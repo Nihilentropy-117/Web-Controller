@@ -1,7 +1,7 @@
 # Environment and Configuration
 .env
 config.toml
-
+.serena
 # Python
 __pycache__/
 *.py[cod]

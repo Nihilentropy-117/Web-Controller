@@ -1,5 +1,5 @@
 # Server Control Panel Configuration
-# Copy this file to config.toml and update with your actual API keys
+# Copy this file to config.toml and fill in your actual values
 
 [splitwise]
 # Splitwise API Credentials
@@ -7,3 +7,11 @@
 consumer_key = "your_consumer_key_here"
 consumer_secret = "your_consumer_secret_here"
 api_key = "your_api_key_here"
+
+[server]
+# Server Settings
+admin_username = "admin"
+admin_password = "admin"
+# Change this to a random secret key in production
+# Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+secret_key = "dev-secret-key-change-in-production"

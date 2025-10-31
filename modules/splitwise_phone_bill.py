@@ -5,34 +5,43 @@ Creates a new Splitwise expense titled "Phone Bill Due <date>"
 
 import sys
 import os
+from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 from module_base import ModuleBase
 from splitwise import Splitwise
 from splitwise.expense import Expense
 from splitwise.user import ExpenseUser
+import tomli
 
 
 class SplitwisePhoneBillModule(ModuleBase):
     """Module to create a Phone Bill expense in Splitwise"""
 
-    # === Configuration ===
-    # Replace with your actual credentials
-    CONSUMER_KEY = "e71sl2WZXFbU08ampTM7YDpUVRJUgi3MSln7fAN0"
-    CONSUMER_SECRET = "AgIRY5X26wEOL77bX6kYkGMqinzEYCxQPnzqm6VB"
-    API_KEY = "Vpclwo6euyy8o6gtxBFeIdKDrAkLruMvbSEwc0Xy"
-    GROUP_ID = 31014911  # Phone Bill
-    TOTAL_COST = 560.0
+    def __init__(self):
+        # Load configuration from config.toml
+        config_path = Path(__file__).parent.parent / 'config.toml'
+        with open(config_path, 'rb') as f:
+            config = tomli.load(f)
 
-    # Friend IDs and owed amounts
-    USERS_OWED = {
-        83976680: 40,  # Kas Johnson
-        22444750: 50,  # Skye Nova
-        48415524: 165,  # Fen Jensen
-        23353628: 75,  # Ethan None
-        22664155: 75,  # Hiro (Chris)
-        51393333: 70,  # Elle Scott
-    }
+        splitwise_config = config.get('splitwise', {})
+
+        # === Configuration from config.toml ===
+        self.CONSUMER_KEY = splitwise_config.get('consumer_key')
+        self.CONSUMER_SECRET = splitwise_config.get('consumer_secret')
+        self.API_KEY = splitwise_config.get('api_key')
+        self.GROUP_ID = 31014911  # Phone Bill
+        self.TOTAL_COST = 560.0
+
+        # Friend IDs and owed amounts
+        self.USERS_OWED = {
+            83976680: 40,  # Kas Johnson
+            22444750: 50,  # Skye Nova
+            48415524: 165,  # Fen Jensen
+            23353628: 75,  # Ethan None
+            22664155: 75,  # Hiro (Chris)
+            51393333: 70,  # Elle Scott
+        }
 
     @property
     def name(self) -> str:

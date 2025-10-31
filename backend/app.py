@@ -9,8 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from passlib.context import CryptContext
-from dotenv import load_dotenv
+import bcrypt
 import importlib
 import inspect
 import os
@@ -18,14 +17,17 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 from module_base import ModuleBase
+import tomli
 
-# Load environment variables from .env file
-load_dotenv(Path(__file__).parent.parent / '.env')
+# Load configuration from config.toml
+config_path = Path(__file__).parent.parent / 'config.toml'
+with open(config_path, 'rb') as f:
+    config = tomli.load(f)
 
 app = FastAPI(title="Server Control Panel")
 
 # Session configuration
-SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+SECRET_KEY = config.get('server', {}).get('secret_key', 'dev-secret-key-change-in-production')
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
@@ -49,12 +51,11 @@ base_dir = Path(__file__).parent.parent
 app.mount("/static", StaticFiles(directory=str(base_dir / "static")), name="static")
 templates = Jinja2Templates(directory=str(base_dir / "templates"))
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# Authentication credentials (from environment variables)
-AUTH_USERNAME = os.environ.get('AUTH_USERNAME', 'admin')
-AUTH_PASSWORD_HASH = os.environ.get('AUTH_PASSWORD_HASH', pwd_context.hash('admin'))
+# Authentication credentials (from config.toml)
+AUTH_USERNAME = config.get('server', {}).get('admin_username', 'admin')
+AUTH_PASSWORD = config.get('server', {}).get('admin_password', 'admin')
+# Hash the password from config
+AUTH_PASSWORD_HASH = bcrypt.hashpw(AUTH_PASSWORD.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 # Store loaded modules
 modules: Dict[str, ModuleBase] = {}
@@ -136,7 +137,11 @@ async def login_submit(
     password: str = Form(...)
 ):
     """Handle login authentication"""
-    if username == AUTH_USERNAME and pwd_context.verify(password, AUTH_PASSWORD_HASH):
+    password_matches = bcrypt.checkpw(
+        password.encode('utf-8'),
+        AUTH_PASSWORD_HASH.encode('utf-8')
+    )
+    if username == AUTH_USERNAME and password_matches:
         request.session['authenticated'] = True
         request.session['username'] = username
         return RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
