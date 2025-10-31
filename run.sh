@@ -27,6 +27,6 @@ echo "  Starting server..."
 echo "========================================="
 echo ""
 
-# Run the Flask app
+# Run the FastAPI app with Uvicorn
 cd backend
-python app.py
+uvicorn app:app --host 0.0.0.0 --port 5001 --reload
