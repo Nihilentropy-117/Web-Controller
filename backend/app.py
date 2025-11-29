@@ -3,7 +3,7 @@ FastAPI backend for server control panel
 Automatically discovers and loads modules from the modules directory
 """
 
-from fastapi import FastAPI, Request, Depends, HTTPException, Form, status
+from fastapi import FastAPI, Request, Depends, HTTPException, Form, File, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from module_base import ModuleBase
 import tomli
+import base64
 
 # Load configuration from config.toml
 config_path = Path(__file__).parent.parent / 'config.toml'
@@ -220,6 +221,38 @@ async def reload_modules_api(session=Depends(require_authentication)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post('/api/upload-images')
+async def upload_images_api(
+    files: List[UploadFile] = File(...),
+    session=Depends(require_authentication)
+):
+    """Handle image uploads and return base64 encoded images"""
+    if len(files) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
+
+    encoded_images = []
+
+    for file in files:
+        # Read the file content
+        content = await file.read()
+
+        # Encode to base64
+        encoded = base64.b64encode(content).decode('utf-8')
+        encoded_images.append(encoded)
+
+    return {
+        "success": True,
+        "images": encoded_images,
+        "count": len(encoded_images)
+    }
+
+
+@app.get('/split-receipt', response_class=HTMLResponse)
+async def split_receipt_page(request: Request, session=Depends(require_authentication)):
+    """Serve the split receipt page"""
+    return templates.TemplateResponse('split_receipt.html', {'request': request})
 
 
 @app.on_event("startup")

@@ -119,19 +119,54 @@ function createModuleCard(module) {
     const fieldsHTML = fields.length > 0
         ? `
             <div class="module-fields">
-                ${fields.map(field => `
-                    <div class="field-group">
-                        <label class="field-label" for="${module.id}-${field.id}">${field.label}</label>
-                        <input
-                            type="${field.type || 'text'}"
-                            id="${module.id}-${field.id}"
-                            class="field-input"
-                            placeholder="${field.placeholder || ''}"
-                            value="${field.value || ''}"
-                            data-field-id="${field.id}"
-                        />
-                    </div>
-                `).join('')}
+                ${fields.map(field => {
+                    if (field.type === 'select') {
+                        return `
+                            <div class="field-group">
+                                <label class="field-label" for="${module.id}-${field.id}">${field.label}</label>
+                                <select
+                                    id="${module.id}-${field.id}"
+                                    class="field-input"
+                                    data-field-id="${field.id}"
+                                >
+                                    <option value="">${field.placeholder || 'Select...'}</option>
+                                    ${(field.options || []).map(opt => `
+                                        <option value="${opt.id}">${opt.name}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        `;
+                    } else if (field.type === 'file') {
+                        return `
+                            <div class="field-group">
+                                <label class="field-label" for="${module.id}-${field.id}">${field.label}</label>
+                                <input
+                                    type="file"
+                                    id="${module.id}-${field.id}"
+                                    class="field-input"
+                                    accept="${field.accept || '*'}"
+                                    ${field.multiple ? 'multiple' : ''}
+                                    ${field.capture ? `capture="${field.capture}"` : ''}
+                                    data-field-id="${field.id}"
+                                />
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="field-group">
+                                <label class="field-label" for="${module.id}-${field.id}">${field.label}</label>
+                                <input
+                                    type="${field.type || 'text'}"
+                                    id="${module.id}-${field.id}"
+                                    class="field-input"
+                                    placeholder="${field.placeholder || ''}"
+                                    value="${field.value || ''}"
+                                    data-field-id="${field.id}"
+                                />
+                            </div>
+                        `;
+                    }
+                }).join('')}
             </div>
         `
         : '';
@@ -195,15 +230,108 @@ async function executeAction(moduleId, actionId) {
                           });
 
         if (moduleCard) {
-            const inputs = moduleCard.querySelectorAll('.field-input');
-            inputs.forEach(input => {
+            const inputs = moduleCard.querySelectorAll('.field-input, select');
+            for (const input of inputs) {
                 const fieldId = input.getAttribute('data-field-id');
                 if (fieldId) {
-                    params[fieldId] = input.value;
+                    // Handle file inputs specially
+                    if (input.type === 'file') {
+                        const files = input.files;
+                        if (files && files.length > 0) {
+                            // Upload files and get base64 encoded images
+                            const formData = new FormData();
+                            for (let i = 0; i < files.length; i++) {
+                                formData.append('files', files[i]);
+                            }
+
+                            const uploadResponse = await fetch(`${API_BASE}/upload-images`, {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            const uploadData = await uploadResponse.json();
+                            if (uploadData.success) {
+                                params[fieldId] = uploadData.images;
+                            } else {
+                                showToast('Failed to upload images', 'error');
+                                buttons.forEach(btn => btn.disabled = false);
+                                return;
+                            }
+                        }
+                    } else {
+                        params[fieldId] = input.value;
+                    }
                 }
-            });
+            }
         }
 
+        // Special handling for receipt splitter fetch_groups action
+        if (moduleId === 'receiptsplittermodule' && actionId === 'fetch_groups') {
+            const response = await fetch(`${API_BASE}/modules/${moduleId}/action`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action_id: actionId,
+                    params: params
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update the dropdown with groups
+                const groupSelect = document.querySelector(`#${moduleId}-group_id`);
+                if (groupSelect) {
+                    groupSelect.innerHTML = '<option value="">Select a group</option>';
+                    data.groups.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group.id;
+                        option.textContent = group.name;
+                        groupSelect.appendChild(option);
+                    });
+                    showToast(data.message, 'success');
+                }
+            } else {
+                showToast(data.error || 'Action failed', 'error');
+            }
+            buttons.forEach(btn => btn.disabled = false);
+            return;
+        }
+
+        // Special handling for receipt splitter process_receipt action
+        if (moduleId === 'receiptsplittermodule' && actionId === 'process_receipt') {
+            showToast('Processing receipt with AI...', 'info');
+
+            const response = await fetch(`${API_BASE}/modules/${moduleId}/action`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action_id: actionId,
+                    params: params
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(data.message, 'success');
+
+                // Open split receipt page in new window
+                const itemsJson = encodeURIComponent(JSON.stringify(data.items));
+                const url = `/split-receipt?token=${data.session_token}&group=${data.group_id}&items=${itemsJson}`;
+                window.open(url, '_blank', 'width=800,height=900');
+            } else {
+                showToast(data.error || 'Action failed', 'error');
+            }
+            buttons.forEach(btn => btn.disabled = false);
+            return;
+        }
+
+        // Default action handling
         const response = await fetch(`${API_BASE}/modules/${moduleId}/action`, {
             method: 'POST',
             headers: {

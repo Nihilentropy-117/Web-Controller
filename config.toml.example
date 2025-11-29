@@ -8,6 +8,11 @@ consumer_key = "your_consumer_key_here"
 consumer_secret = "your_consumer_secret_here"
 api_key = "your_api_key_here"
 
+[openrouter]
+# OpenRouter API Key
+# Get your API key from: https://openrouter.ai/keys
+api_key = "your_openrouter_api_key_here"
+
 [server]
 # Server Settings
 admin_username = "admin"

@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split Receipt Items</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .split-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+
+        .split-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .split-header h1 {
+            font-size: 2rem;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .split-progress {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .progress-bar {
+            flex: 1;
+            max-width: 400px;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #8b5cf6;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .item-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .item-info {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .item-name {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .item-price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #8b5cf6;
+        }
+
+        .participants-label {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .user-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-checkbox:hover {
+            background: #f3f4f6;
+            border-color: #8b5cf6;
+        }
+
+        .user-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 0.75rem;
+            cursor: pointer;
+            accent-color: #8b5cf6;
+        }
+
+        .user-checkbox label {
+            cursor: pointer;
+            font-weight: 500;
+            color: #374151;
+            flex: 1;
+        }
+
+        .user-checkbox.selected {
+            background: #ede9fe;
+            border-color: #8b5cf6;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-previous {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-previous:hover:not(:disabled) {
+            background: #4b5563;
+        }
+
+        .btn-next {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .btn-next:hover:not(:disabled) {
+            background: #7c3aed;
+        }
+
+        .btn-finish {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-finish:hover:not(:disabled) {
+            background: #16a34a;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top-color: #8b5cf6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .description-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .description-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+        }
+
+        .summary-section {
+            display: none;
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .summary-section.active {
+            display: block;
+        }
+
+        .summary-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .summary-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .summary-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        .toast.success {
+            border-left: 4px solid #22c55e;
+        }
+
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="split-container">
+        <div class="split-header">
+            <h1>🧾 Split Receipt Items</h1>
+            <p class="subtitle">Select who participated in each item</p>
+        </div>
+
+        <div class="split-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <span class="progress-text" id="progressText">0 / 0</span>
+        </div>
+
+        <div class="item-card" id="itemCard">
+            <div class="item-info">
+                <div class="item-name" id="itemName">Loading...</div>
+                <div class="item-price" id="itemPrice">$0.00</div>
+            </div>
+
+            <label class="participants-label">Who participated in this item?</label>
+
+            <div class="users-grid" id="usersGrid">
+                <!-- Users will be populated here -->
+            </div>
+
+            <div class="navigation-buttons">
+                <button class="nav-btn btn-previous" id="btnPrevious" onclick="previousItem()">
+                    ← Previous
+                </button>
+                <button class="nav-btn btn-next" id="btnNext" onclick="nextItem()">
+                    Next →
+                </button>
+                <button class="nav-btn btn-finish" id="btnFinish" onclick="showSummary()" style="display: none;">
+                    Review & Submit ✓
+                </button>
+            </div>
+        </div>
+
+        <div class="summary-section" id="summarySection">
+            <h2 class="summary-title">Review Summary</h2>
+
+            <label for="expenseDescription" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                Expense Description
+            </label>
+            <input
+                type="text"
+                id="expenseDescription"
+                class="description-input"
+                placeholder="e.g., Grocery Shopping, Dinner"
+                value="Receipt Split"
+            />
+
+            <div id="summaryContent"></div>
+
+            <div class="navigation-buttons">
+                <button class="nav-btn btn-previous" onclick="backToSplit()">
+                    ← Back to Items
+                </button>
+                <button class="nav-btn btn-finish" onclick="submitExpense()">
+                    Create Expense ✓
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionToken = urlParams.get('token');
+        const groupId = urlParams.get('group');
+        const itemsParam = urlParams.get('items');
+
+        let items = [];
+        let users = [];
+        let currentItemIndex = 0;
+        let itemSelections = {}; // {itemName: [userId1, userId2, ...]}
+
+        // Initialize
+        async function init() {
+            if (!sessionToken || !groupId || !itemsParam) {
+                showToast('Missing required parameters', 'error');
+                return;
+            }
+
+            try {
+                // Parse items from URL
+                items = JSON.parse(decodeURIComponent(itemsParam));
+                const itemNames = Object.keys(items);
+
+                if (itemNames.length === 0) {
+                    showToast('No items found', 'error');
+                    return;
+                }
+
+                // Fetch group users
+                const response = await fetch('/api/modules/receiptsplittermodule/action', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action_id: 'fetch_group_users',
+                        params: { group_id: groupId }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    showToast(data.error || 'Failed to fetch users', 'error');
+                    return;
+                }
+
+                users = data.users;
+
+                // Initialize selections
+                itemNames.forEach(itemName => {
+                    itemSelections[itemName] = [];
+                });
+
+                // Display first item
+                displayItem(0);
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showToast('Failed to initialize: ' + error.message, 'error');
+            }
+        }
+
+        function displayItem(index) {
+            const itemNames = Object.keys(items);
+            if (index < 0 || index >= itemNames.length) return;
+
+            currentItemIndex = index;
+            const itemName = itemNames[index];
+            const itemPrice = items[itemName];
+
+            // Update item info
+            document.getElementById('itemName').textContent = itemName;
+            document.getElementById('itemPrice').textContent = '$' + itemPrice.toFixed(2);
+
+            // Update progress
+            document.getElementById('progressText').textContent = `${index + 1} / ${itemNames.length}`;
+            const progressPercent = ((index + 1) / itemNames.length) * 100;
+            document.getElementById('progressFill').style.width = progressPercent + '%';
+
+            // Populate users
+            const usersGrid = document.getElementById('usersGrid');
+            usersGrid.innerHTML = '';
+
+            users.forEach(user => {
+                const isSelected = itemSelections[itemName].includes(user.id);
+
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user-checkbox' + (isSelected ? ' selected' : '');
+
+                userDiv.innerHTML = `
+                    <input
+                        type="checkbox"
+                        id="user-${user.id}"
+                        value="${user.id}"
+                        ${isSelected ? 'checked' : ''}
+                        onchange="toggleUser('${itemName}', ${user.id}, this.checked)"
+                    />
+                    <label for="user-${user.id}">${user.name}</label>
+                `;
+
+                usersGrid.appendChild(userDiv);
+            });
+
+            // Update navigation buttons
+            document.getElementById('btnPrevious').disabled = index === 0;
+            document.getElementById('btnNext').style.display = index < itemNames.length - 1 ? 'flex' : 'none';
+            document.getElementById('btnFinish').style.display = index === itemNames.length - 1 ? 'flex' : 'none';
+        }
+
+        function toggleUser(itemName, userId, isChecked) {
+            if (isChecked) {
+                if (!itemSelections[itemName].includes(userId)) {
+                    itemSelections[itemName].push(userId);
+                }
+            } else {
+                itemSelections[itemName] = itemSelections[itemName].filter(id => id !== userId);
+            }
+
+            // Update visual state
+            const checkbox = document.getElementById(`user-${userId}`);
+            if (checkbox) {
+                const parent = checkbox.closest('.user-checkbox');
+                if (isChecked) {
+                    parent.classList.add('selected');
+                } else {
+                    parent.classList.remove('selected');
+                }
+            }
+        }
+
+        function previousItem() {
+            if (currentItemIndex > 0) {
+                displayItem(currentItemIndex - 1);
+            }
+        }
+
+        function nextItem() {
+            const itemNames = Object.keys(items);
+            if (currentItemIndex < itemNames.length - 1) {
+                displayItem(currentItemIndex + 1);
+            }
+        }
+
+        function showSummary() {
+            // Calculate totals per user
+            const userTotals = {};
+
+            for (const [itemName, participantIds] of Object.entries(itemSelections)) {
+                const itemPrice = items[itemName];
+                const numParticipants = participantIds.length;
+
+                if (numParticipants === 0) continue;
+
+                const splitAmount = itemPrice / numParticipants;
+
+                participantIds.forEach(userId => {
+                    userTotals[userId] = (userTotals[userId] || 0) + splitAmount;
+                });
+            }
+
+            // Build summary HTML
+            let summaryHTML = '<div class="summary-list">';
+            summaryHTML += '<div class="summary-item" style="font-weight: 600; border-bottom: 2px solid #d1d5db;"><span>Person</span><span>Owes</span></div>';
+
+            users.forEach(user => {
+                const total = userTotals[user.id] || 0;
+                if (total > 0) {
+                    summaryHTML += `
+                        <div class="summary-item">
+                            <span>${user.name}</span>
+                            <span style="font-weight: 600; color: #8b5cf6;">$${total.toFixed(2)}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            const grandTotal = Object.values(userTotals).reduce((sum, val) => sum + val, 0);
+            summaryHTML += `
+                <div class="summary-item" style="font-weight: 700; font-size: 1.125rem; border-top: 2px solid #d1d5db; margin-top: 0.5rem; padding-top: 1rem;">
+                    <span>Total</span>
+                    <span style="color: #8b5cf6;">$${grandTotal.toFixed(2)}</span>
+                </div>
+            `;
+            summaryHTML += '</div>';
+
+            document.getElementById('summaryContent').innerHTML = summaryHTML;
+
+            // Hide item card, show summary
+            document.getElementById('itemCard').style.display = 'none';
+            document.getElementById('summarySection').classList.add('active');
+        }
+
+        function backToSplit() {
+            document.getElementById('itemCard').style.display = 'block';
+            document.getElementById('summarySection').classList.remove('active');
+            displayItem(currentItemIndex);
+        }
+
+        async function submitExpense() {
+            const description = document.getElementById('expenseDescription').value.trim() || 'Receipt Split';
+
+            document.getElementById('loadingOverlay').classList.add('active');
+
+            try {
+                const response = await fetch('/api/modules/receiptsplittermodule/action', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action_id: 'create_split_expense',
+                        params: {
+                            session_token: sessionToken,
+                            item_splits: itemSelections,
+                            description: description
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                document.getElementById('loadingOverlay').classList.remove('active');
+
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    setTimeout(() => {
+                        window.close();
+                    }, 2000);
+                } else {
+                    showToast(data.error || 'Failed to create expense', 'error');
+                }
+
+            } catch (error) {
+                document.getElementById('loadingOverlay').classList.remove('active');
+                console.error('Submit error:', error);
+                showToast('Failed to submit: ' + error.message, 'error');
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️'
+            };
+
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type] || icons.info}</span>
+                <span class="toast-message">${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideInRight 0.3s ease-out reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
